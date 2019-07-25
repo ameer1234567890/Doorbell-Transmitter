@@ -8,6 +8,7 @@
 #define WIFI_SSID "xxxxxxxxxx"
 #define WIFI_PASSWORD "xxxxxxxxxx"
 #define IFTTT_URL "http://maker.ifttt.com/trigger/doorbell/with/key/xxxxxxxxxxxxxxxxxxxxxx"
+#define THINGSPEAK_KEY
 #endif
 
 #define LED_PIN 0
@@ -15,8 +16,11 @@
 #define MANUAL_BOOT_PIN 3
 #define OTA_HOSTNAME "Doorbell-Transmitter"
 bool manualBoot = false;
+int batVoltage;
+HTTPClient http;
 WiFiClient wClient;
-
+WiFiClientSecure wClientSecure;
+ADC_MODE(ADC_VCC);
 
 void setup() {
   pinMode(RELAY_PIN, OUTPUT);
@@ -31,6 +35,7 @@ void setup() {
     ArduinoOTA.begin();
   }
   pinMode(LED_PIN, OUTPUT);
+  batVoltage = ESP.getVcc();
   setupWifi();
   if (!manualBoot) {
     if (postToIfttt()) {
@@ -50,6 +55,7 @@ void setup() {
       delay(200);
       digitalWrite(LED_PIN, LOW);
     }
+    postToThingSpeak();
     delay(1000);
     digitalWrite(LED_PIN, LOW);
     Serial.println("Powering off!");
@@ -69,10 +75,8 @@ void loop() {
 
 
 bool postToIfttt() {
-  HTTPClient http;
-  uint httpCode;
   http.begin(wClient, IFTTT_URL);
-  httpCode = http.GET();
+  uint httpCode = http.GET();
   http.end();
   if (httpCode == 200) {
     Serial.println(httpCode);
@@ -81,6 +85,16 @@ bool postToIfttt() {
     Serial.println(httpCode);
     return false;
   }
+}
+
+
+void postToThingSpeak() {
+  String url = "/update?api_key=" + String(THINGSPEAK_KEY) + "&field1=" + String(batVoltage);
+  wClientSecure.setInsecure(); // until we have better handling of a trust chain on small devices
+  http.begin(wClientSecure, "api.thingspeak.com", 443, url, true);
+  uint httpCode = http.GET();
+  Serial.println(httpCode);
+  http.end();
 }
 
 
