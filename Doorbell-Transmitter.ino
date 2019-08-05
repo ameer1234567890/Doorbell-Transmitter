@@ -8,7 +8,7 @@
 #define WIFI_SSID "xxxxxxxxxx"
 #define WIFI_PASSWORD "xxxxxxxxxx"
 #define IFTTT_URL "http://maker.ifttt.com/trigger/doorbell/with/key/xxxxxxxxxxxxxxxxxxxxxx"
-#define THINGSPEAK_KEY
+#define THINGSPEAK_KEY "xxxxxxxxxx"
 #endif
 
 #define LED_PIN 0
