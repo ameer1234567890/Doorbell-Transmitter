@@ -9,7 +9,10 @@
 #define WIFI_PASSWORD "xxxxxxxxxx"
 #define IFTTT_URL "http://maker.ifttt.com/trigger/doorbell/with/key/xxxxxxxxxxxxxxxxxxxxxx"
 #define THINGSPEAK_KEY "xxxxxxxxxx"
+#define SECOND_URL "http://lab.grapeot.me/ifttt/delay?event={IFTTT_EVENT_NAME}&t={TIME_IN_MINUTES}&key={IFTTT_KEY}"
 #endif
+
+/* Documentation for IFTTT delayed triggers: https://grapeot.me/adding-a-delay-to-ifttt-recipes.html */
 
 #define LED_PIN 0
 #define RELAY_PIN 2
@@ -38,22 +41,51 @@ void setup() {
   batVoltage = ESP.getVcc();
   setupWifi();
   if (!manualBoot) {
-    if (postToIfttt()) {
+    if (postToIfttt(IFTTT_URL)) {
       digitalWrite(LED_PIN, HIGH);
       Serial.println("Done!");
     } else {
-      Serial.println("IFTTT did not work!");
+      delay(2000); // wait 2 seconds and retry
+      if (postToIfttt(IFTTT_URL)) {
+        digitalWrite(LED_PIN, HIGH);
+        Serial.println("Done!");
+      } else {
+        Serial.println("IFTTT did not work!");
+        digitalWrite(LED_PIN, HIGH);
+        delay(200);
+        digitalWrite(LED_PIN, LOW);
+        delay(200);
+        digitalWrite(LED_PIN, HIGH);
+        delay(200);
+        digitalWrite(LED_PIN, LOW);
+        delay(200);
+        digitalWrite(LED_PIN, HIGH);
+        delay(200);
+        digitalWrite(LED_PIN, LOW);
+      }
+    }
+    if (postToIfttt(SECOND_URL)) {
       digitalWrite(LED_PIN, HIGH);
-      delay(200);
-      digitalWrite(LED_PIN, LOW);
-      delay(200);
-      digitalWrite(LED_PIN, HIGH);
-      delay(200);
-      digitalWrite(LED_PIN, LOW);
-      delay(200);
-      digitalWrite(LED_PIN, HIGH);
-      delay(200);
-      digitalWrite(LED_PIN, LOW);
+      Serial.println("Done!");
+    } else {
+      delay(2000); // wait 2 seconds and retry
+      if (postToIfttt(SECOND_URL)) {
+        digitalWrite(LED_PIN, HIGH);
+        Serial.println("Done!");
+      } else {
+        Serial.println("IFTTT did not work!");
+        digitalWrite(LED_PIN, HIGH);
+        delay(200);
+        digitalWrite(LED_PIN, LOW);
+        delay(200);
+        digitalWrite(LED_PIN, HIGH);
+        delay(200);
+        digitalWrite(LED_PIN, LOW);
+        delay(200);
+        digitalWrite(LED_PIN, HIGH);
+        delay(200);
+        digitalWrite(LED_PIN, LOW);
+      }
     }
     postToThingSpeak();
     delay(1000);
@@ -74,8 +106,8 @@ void loop() {
 }
 
 
-bool postToIfttt() {
-  http.begin(wClient, IFTTT_URL);
+bool postToIfttt(String url) {
+  http.begin(wClient, url);
   uint httpCode = http.GET();
   http.end();
   if (httpCode == 200) {
