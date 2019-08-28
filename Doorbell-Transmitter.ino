@@ -7,12 +7,14 @@
 #ifndef WIFI_SSID
 #define WIFI_SSID "xxxxxxxxxx"
 #define WIFI_PASSWORD "xxxxxxxxxx"
-#define IFTTT_URL "http://maker.ifttt.com/trigger/doorbell/with/key/xxxxxxxxxxxxxxxxxxxxxx"
 #define THINGSPEAK_KEY "xxxxxxxxxx"
-#define SECOND_URL "http://lab.grapeot.me/ifttt/delay?event={IFTTT_EVENT_NAME}&t={TIME_IN_MINUTES}&key={IFTTT_KEY}"
+String URLS[] = {
+                  "http://maker.ifttt.com/trigger/doorbell/with/key/xxxxxxxxxxxxxxxxxxxxxx",
+                  "http://lab.grapeot.me/ifttt/delay?event={IFTTT_EVENT_NAME}&t={TIME_IN_MINUTES}&key={IFTTT_KEY}"
+                };
+/* Documentation for IFTTT delayed triggers: https://grapeot.me/adding-a-delay-to-ifttt-recipes.html */
 #endif
 
-/* Documentation for IFTTT delayed triggers: https://grapeot.me/adding-a-delay-to-ifttt-recipes.html */
 
 #define LED_PIN 0
 #define RELAY_PIN 2
@@ -41,39 +43,23 @@ void setup() {
   batVoltage = ESP.getVcc();
   setupWifi();
   if (!manualBoot) {
-    if (postToIfttt(IFTTT_URL)) {
-      digitalWrite(LED_PIN, HIGH);
-      Serial.println("Done!");
-    } else {
-      delay(2000); // wait 2 seconds and retry
-      if (postToIfttt(IFTTT_URL)) {
-        digitalWrite(LED_PIN, HIGH);
-        Serial.println("Done!");
-      } else {
-        Serial.println("IFTTT did not work!");
-        digitalWrite(LED_PIN, HIGH);
-        delay(200);
-        digitalWrite(LED_PIN, LOW);
-        delay(200);
-        digitalWrite(LED_PIN, HIGH);
-        delay(200);
-        digitalWrite(LED_PIN, LOW);
-        delay(200);
-        digitalWrite(LED_PIN, HIGH);
-        delay(200);
-        digitalWrite(LED_PIN, LOW);
+    for (int i = 0; i < sizeof(URLS); i++) {
+      bool httpSucceeded = false;
+      for (int i = 0; i < 5; i++) {
+        Serial.println(URLS[i]);
+        if (postHTTP(URLS[i])) {
+          httpSucceeded = true;
+          break;
+        }
+        delay(2); // wait 2 seconds before we retry
       }
-    }
-    if (postToIfttt(SECOND_URL)) {
-      digitalWrite(LED_PIN, HIGH);
-      Serial.println("Done!");
-    } else {
-      delay(2000); // wait 2 seconds and retry
-      if (postToIfttt(SECOND_URL)) {
+      if (httpSucceeded) {
+        Serial.println("HTTP Succeeded!");
         digitalWrite(LED_PIN, HIGH);
-        Serial.println("Done!");
+        delay(1000);
+        digitalWrite(LED_PIN, LOW);
       } else {
-        Serial.println("IFTTT did not work!");
+        Serial.println("HTTP Failed!");
         digitalWrite(LED_PIN, HIGH);
         delay(200);
         digitalWrite(LED_PIN, LOW);
@@ -106,7 +92,7 @@ void loop() {
 }
 
 
-bool postToIfttt(String url) {
+bool postHTTP(String url) {
   http.begin(wClient, url);
   uint httpCode = http.GET();
   http.end();
