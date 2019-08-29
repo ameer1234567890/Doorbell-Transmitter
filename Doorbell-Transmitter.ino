@@ -43,15 +43,18 @@ void setup() {
   batVoltage = ESP.getVcc();
   setupWifi();
   if (!manualBoot) {
-    for (int i = 0; i < sizeof(URLS); i++) {
+    int numUrls = sizeof(URLS) / sizeof(URLS[0]);
+    for (int i = 0; i < numUrls; i++) {
       bool httpSucceeded = false;
-      for (int i = 0; i < 5; i++) {
-        Serial.println(URLS[i]);
+      for (int j = 0; j < 5; j++) {
+        Serial.print("Requesting URL: ");
+        Serial.print(URLS[i]);
+        Serial.print(" - Status: ");
         if (postHTTP(URLS[i])) {
           httpSucceeded = true;
           break;
         }
-        delay(2); // wait 2 seconds before we retry
+        delay(2000); // wait 2 seconds before we retry
       }
       if (httpSucceeded) {
         Serial.println("HTTP Succeeded!");
@@ -73,11 +76,12 @@ void setup() {
         digitalWrite(LED_PIN, LOW);
       }
     }
+    Serial.print("Sending battery voltage to ThingSpeak... ");
     postToThingSpeak();
     delay(1000);
     digitalWrite(LED_PIN, LOW);
     Serial.println("Powering off!");
-    delay(1000);
+    delay(10000);
     digitalWrite(RELAY_PIN, HIGH);
   } else {
     digitalWrite(LED_PIN, HIGH);
